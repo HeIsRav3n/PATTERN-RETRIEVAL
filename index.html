@@ -464,7 +464,7 @@ var KEY_DISPLAY={"ArrowLeft":"LEFT","ArrowRight":"RIGHT","ArrowUp":"UP","ArrowDo
 function kName(code){if(KEY_DISPLAY[code])return KEY_DISPLAY[code];return code.replace("Key","").replace("Digit","");}
 
 // ===================== GAME STATE =====================
-var G={mode:"pvc",screen:"screen-title",prev:"screen-title",p1f:null,p2f:null,p1n:"RAV3N",p2n:"ASTERISM",p1h:100,p2h:100,p1p:0,p2p:0,p1w:0,p2w:0,round:1,timer:90,rtime:90,diff:"MEDIUM",sound:true,ctrl:true,paused:false,fighting:false,active:false,p1x:200,p2x:600,p1y:0,p2y:0,p1vy:0,p2vy:0,p1g:true,p2g:true,p1face:1,p2face:-1,p1blk:false,p2blk:false,p1atk:false,p2atk:false,p1stun:0,p2stun:0,p1cb:0,p2cb:0,p1ct:0,p2ct:0,raf:null,ti:null,ai:null,fc:0,af:0,p1ok:false,p2ok:false,bgmNode:null,bgmGain:null,rebinding:null};
+var G={mode:"pvc",screen:"screen-title",prev:"screen-title",p1f:null,p2f:null,p1n:"RAV3N",p2n:"ASTERISM",p1h:100,p2h:100,p1p:0,p2p:0,p1w:0,p2w:0,round:1,timer:90,rtime:90,diff:"MEDIUM",sound:true,ctrl:true,paused:false,fighting:false,active:false,p1x:200,p2x:600,p1y:0,p2y:0,p1vy:0,p2vy:0,p1g:true,p2g:true,p1face:1,p2face:-1,p1blk:false,p2blk:false,p1atk:false,p2atk:false,p1stun:0,p2stun:0,p1cb:0,p2cb:0,p1ct:0,p2ct:0,raf:null,ti:null,ai:null,fc:0,af:0,p1ok:false,p2ok:false,bgmNode:null,bgmGain:null,rebinding:null,isOnline:false,localRole:null,matchId:null,opponentId:null};
 var RT=[30,60,90,120,999],RI=2;
 var DF=["NOVICE","EASY","MEDIUM","HARD","BRUTAL","INSANE","MASTER"],DI=2;
 
@@ -618,6 +618,13 @@ function startRebind(player,action,btn){
   sSel();
 }
 document.addEventListener("keydown",function(e){
+    if (G.isOnline) {
+    if (G.localRole === "p1") {
+      for (var k in CTRL.p2) { if (e.code === CTRL.p2[k]) return; }
+    } else if (G.localRole === "p2") {
+      for (var k in CTRL.p1) { if (e.code === CTRL.p1[k]) return; }
+    }
+  }
   if(G.rebinding){
     e.preventDefault();e.stopPropagation();
     var rb=G.rebinding;G.rebinding=null;
@@ -634,12 +641,12 @@ document.addEventListener("keydown",function(e){
 
 // ===================== MODE & CHARACTER SELECT =====================
 function setMode(m){G.mode=m;G.p1f=null;G.p2f=null;G.p1ok=false;G.p2ok=false;buildGrid();var p2l=document.getElementById("p2lbl"),sh=document.getElementById("shint");if(m==="pvc"){p2l.textContent="CPU - AUTO";sh.textContent="P1: CLICK to select. CPU picks automatically.";}else if(m==="pvp"){p2l.textContent="P2 - SELECT";sh.textContent="P1: LEFT-CLICK   |   P2: RIGHT-CLICK";}else{p2l.textContent="P2 - ONLINE";sh.textContent="P1: CLICK to select.";}G.p1n=document.getElementById("p1ni").value||"WARRIOR-1";G.p2n=document.getElementById("p2ni").value||"WARRIOR-2";showScreen("screen-select");sSel();}
-function buildGrid(){var g=document.getElementById("cgrid");g.innerHTML="";FT.forEach(function(f,i){var c=document.createElement("div");c.className="cc";c.dataset.idx=i;c.style.color=f.color;var p=document.createElement("pre");p.className="cc-asc";p.textContent=getSp(f.id,"i0");var n=document.createElement("div");n.className="cc-nm";n.textContent=f.name.split(" ")[0];c.appendChild(p);c.appendChild(n);c.addEventListener("click",function(){pick(i,"p1");});c.addEventListener("contextmenu",function(e){e.preventDefault();if(G.mode==="pvp")pick(i,"p2");});g.appendChild(c);});}
+function buildGrid(){var g=document.getElementById("cgrid");g.innerHTML="";FT.forEach(function(f,i){var c=document.createElement("div");c.className="cc";c.dataset.idx=i;c.style.color=f.color;var p=document.createElement("pre");p.className="cc-asc";p.textContent=getSp(f.id,"i0");var n=document.createElement("div");n.className="cc-nm";n.textContent=f.name.split(" ")[0];c.appendChild(p);c.appendChild(n);c.addEventListener("click",function(){if(G.isOnline){onlinePick(i);}else{pick(i,"p1");}});c.addEventListener("contextmenu",function(e){e.preventDefault();if(!G.isOnline&&G.mode==="pvp")pick(i,"p2");});g.appendChild(c);});}
 function pick(idx,pl){var f=FT[idx];sSel();if(pl==="p1"){G.p1f=f;G.p1ok=true;document.getElementById("p1asc").textContent=getSp(f.id,"i0");document.getElementById("p1asc").style.color=f.color;document.getElementById("p1fn").textContent=f.name;document.getElementById("p1bio").textContent=f.bio;document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp1");});document.querySelector('.cc[data-idx="'+idx+'"]').classList.add("sp1");if(G.mode==="pvc"){setTimeout(function(){var ci;do{ci=Math.floor(Math.random()*FT.length);}while(ci===idx);var cf=FT[ci];G.p2f=cf;G.p2ok=true;document.getElementById("p2asc").textContent=getSp(cf.id,"i0");document.getElementById("p2asc").style.color=cf.color;document.getElementById("p2fn").textContent=cf.name+" [CPU]";document.getElementById("p2bio").textContent=cf.bio;document.querySelector('.cc[data-idx="'+ci+'"]').classList.add("sp2");chkPick();},700);}}else{G.p2f=f;G.p2ok=true;document.getElementById("p2asc").textContent=getSp(f.id,"i0");document.getElementById("p2asc").style.color=f.color;document.getElementById("p2fn").textContent=f.name;document.getElementById("p2bio").textContent=f.bio;document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp2");});document.querySelector('.cc[data-idx="'+idx+'"]').classList.add("sp2");}chkPick();}
-function chkPick(){if(G.p1ok&&G.p2ok){var b=document.getElementById("fight-btn");b.style.opacity="1";b.style.pointerEvents="auto";b.style.borderColor="var(--blb)";b.style.color="var(--blb)";}}
+function chkPick(){if(G.isOnline)return;if(G.p1ok&&G.p2ok){var b=document.getElementById("fight-btn");b.style.opacity="1";b.style.pointerEvents="auto";b.style.borderColor="var(--blb)";b.style.color="var(--blb)";}}
 
 // ===================== FIGHT =====================
-function startFight(){if(!G.p1f||!G.p2f)return;sSup();G.p1n=document.getElementById("p1ni").value||G.p1f.name;G.p2n=document.getElementById("p2ni").value||G.p2f.name;updateMyStatus("in-match");showScreen("screen-fight");buildMoves();buildArena();setTimeout(initRound,120);}
+function startFight(){if(!G.p1f||!G.p2f)return;sSup();G.p1n=document.getElementById("p1ni").value||G.p1f.name;G.p2n=document.getElementById("p2ni").value||G.p2f.name;updateMyStatus("in-match");showScreen("screen-fight");buildMoves();buildArena();if(G.isOnline){listenToOnlineOpponent();listenToOnlineHits();}setTimeout(initRound,120);}
 function initRound(){stopAll();G.p1h=100;G.p2h=100;G.p1p=0;G.p2p=0;G.paused=false;G.fighting=true;G.active=false;G.p1x=Math.round(AW()*.25);G.p2x=Math.round(AW()*.75);G.p1y=GY();G.p2y=GY();G.p1vy=0;G.p2vy=0;G.p1g=true;G.p2g=true;G.p1face=1;G.p2face=-1;G.p1blk=false;G.p2blk=false;G.p1atk=false;G.p2atk=false;G.p1stun=0;G.p2stun=0;G.p1cb=0;G.p2cb=0;G.p1ct=0;G.p2ct=0;G.fc=0;G.af=0;G.timer=G.rtime===999?90:G.rtime;
   var gnd=document.getElementById("ground"),ar=ARENAS[CUR_ARENA];
   if(gnd){gnd.style.bottom=(AH()-GY()-2)+"px";gnd.style.background=ar.groundColor;gnd.style.boxShadow="0 0 12px "+ar.groundColor;}
@@ -648,7 +655,15 @@ function initRound(){stopAll();G.p1h=100;G.p2h=100;G.p1p=0;G.p2p=0;G.paused=fals
 
 // ===================== KEY STATE =====================
 var K={};
-document.addEventListener("keyup",function(e){K[e.code]=false;if(e.code===CTRL.p1.block)G.p1blk=false;if(e.code===CTRL.p2.block)G.p2blk=false;});
+document.addEventListener("keyup",function(e){
+  if (G.isOnline) {
+    if (G.localRole === "p1") {
+      for (var k in CTRL.p2) { if (e.code === CTRL.p2[k]) return; }
+    } else if (G.localRole === "p2") {
+      for (var k in CTRL.p1) { if (e.code === CTRL.p1[k]) return; }
+    }
+  }
+K[e.code]=false;if(e.code===CTRL.p1.block)G.p1blk=false;if(e.code===CTRL.p2.block)G.p2blk=false;});
 
 // ===================== MOBILE DETECTION & TOUCH SUPPORT =====================
 var isMobile=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -716,8 +731,8 @@ function onKey(e){
 }
 
 // ===================== GAME LOOP =====================
-function startRAF(){if(G.raf)cancelAnimationFrame(G.raf);function loop(){if(!G.paused&&G.active){G.fc++;mv();ph();fc2();rb();ct();if(G.fc%22===0)G.af=(G.af+1)%2;render();}G.raf=requestAnimationFrame(loop);}G.raf=requestAnimationFrame(loop);}
-function mv(){var w=AW();if(K[CTRL.p1.left]&&!G.p1stun){G.p1x-=SPD;if(G.p1x<WL)G.p1x=WL;}if(K[CTRL.p1.right]&&!G.p1stun){G.p1x+=SPD;if(G.p1x>w-WL)G.p1x=w-WL;}if(K[CTRL.p2.left]&&!G.p2stun){G.p2x-=SPD;if(G.p2x<WL)G.p2x=WL;}if(K[CTRL.p2.right]&&!G.p2stun){G.p2x+=SPD;if(G.p2x>w-WL)G.p2x=w-WL;}if(G.p1stun>0)G.p1stun--;if(G.p2stun>0)G.p2stun--;}
+function startRAF(){if(G.raf)cancelAnimationFrame(G.raf);function loop(){if(!G.paused&&G.active){G.fc++;mv();ph();fc2();rb();ct();if(G.fc%22===0)G.af=(G.af+1)%2;render();if(G.isOnline&&fbDb&&G.matchId&&G.fc%2===0){pushMyOnlineState();}}G.raf=requestAnimationFrame(loop);}G.raf=requestAnimationFrame(loop);}
+function mv(){var w=AW();if(!G.isOnline||G.localRole==="p1"){if(K[CTRL.p1.left]&&!G.p1stun){G.p1x-=SPD;if(G.p1x<WL)G.p1x=WL;}if(K[CTRL.p1.right]&&!G.p1stun){G.p1x+=SPD;if(G.p1x>w-WL)G.p1x=w-WL;}if(G.p1stun>0)G.p1stun--;}if(!G.isOnline||G.localRole==="p2"){if(K[CTRL.p2.left]&&!G.p2stun){G.p2x-=SPD;if(G.p2x<WL)G.p2x=WL;}if(K[CTRL.p2.right]&&!G.p2stun){G.p2x+=SPD;if(G.p2x>w-WL)G.p2x=w-WL;}if(G.p2stun>0)G.p2stun--;}}
 function ph(){var gY=GY(),w=AW();if(!G.p1g){G.p1vy+=GR;G.p1y+=G.p1vy;if(G.p1y>=gY){G.p1y=gY;G.p1vy=0;G.p1g=true;}}if(!G.p2g){G.p2vy+=GR;G.p2y+=G.p2vy;if(G.p2y>=gY){G.p2y=gY;G.p2vy=0;G.p2g=true;}}var dx=Math.abs(G.p2x-G.p1x);if(dx<52){var push=3;if(G.p1x<G.p2x){G.p1x-=push;G.p2x+=push;}else{G.p1x+=push;G.p2x-=push;}G.p1x=Math.max(WL,Math.min(w-WL,G.p1x));G.p2x=Math.max(WL,Math.min(w-WL,G.p2x));}}
 function fc2(){G.p1face=G.p2x>G.p1x?1:-1;G.p2face=G.p1x>G.p2x?1:-1;}
 function rb(){var el=document.getElementById("rangebar");if(!el)return;var d=Math.abs(G.p2x-G.p1x);el.textContent=d<=CLO?"[ CLOSE RANGE ]":d<=FAR?"[ MID RANGE ]":"[ OUT OF RANGE ]";}
@@ -727,9 +742,9 @@ function render(){var f1=document.getElementById("f1"),f2=document.getElementByI
 // ===================== COMBAT =====================
 function dst(){return Math.abs(G.p2x-G.p1x);}
 function doJump(p){if(!G.active)return;if(p===1){if(!G.p1g)return;sJmp();G.p1vy=JV;G.p1g=false;}else{if(!G.p2g)return;sJmp();G.p2vy=JV;G.p2g=false;}}
-function doPunch(p){if(!G.active)return;if(p===1&&G.p1atk)return;if(p===2&&G.p2atk)return;if(dst()>CLO){popMsg(p,"OUT OF RANGE");return;}doAtk(p,9+Math.floor(Math.random()*6));}
-function doKick(p){if(!G.active)return;if(p===1&&G.p1atk)return;if(p===2&&G.p2atk)return;if(dst()>CLO){popMsg(p,"OUT OF RANGE");return;}doAtk(p,12+Math.floor(Math.random()*8));}
-function doSpc(p,type){if(!G.active)return;var pw=p===1?G.p1p:G.p2p,cost=type==="super"?100:40;if(pw<cost){popMsg(p,"NEED POWER!");return;}var fig=p===1?G.p1f:G.p2f;if(!fig)return;var mv=null;for(var i=0;i<fig.moves.length;i++){if(fig.moves[i].type===type){mv=fig.moves[i];break;}}if(!mv)return;var d=dst(),maxR=type==="special1"?FAR:CLO*1.6;if(d>maxR){popMsg(p,"OUT OF RANGE");return;}if(type==="super")sSup();else sSpc();var arena=document.getElementById("arena");var fl=document.createElement("div");fl.className="sfx";fl.style.background="radial-gradient(circle,"+fig.color+"44 0%,transparent 70%)";arena.appendChild(fl);setTimeout(function(){if(fl.parentNode)fl.remove();},320);if(type==="special1"&&d>CLO)spProj(p,fig.color);var dmg=mv.damage+Math.floor(Math.random()*12);var def=p===1?2:1,blk=p===1?G.p2blk:G.p1blk;if(blk&&type!=="super"){sBlk();popHit(p===1?G.p2x:G.p1x,"BLOCK","#44ffaa");addPow(def,6);}else{dealDmg(p,dmg,"special");popHit(p===1?G.p2x:G.p1x,mv.name,fig.color,true);addCb(p);}if(p===1)G.p1p=Math.max(0,G.p1p-cost);else G.p2p=Math.max(0,G.p2p-cost);updH();hlMv(p,type);}
+function doPunch(p){if(!G.active)return;if(G.isOnline){var myRoleNum=G.localRole==="p1"?1:2;if(p!==myRoleNum)return;}if(p===1&&G.p1atk)return;if(p===2&&G.p2atk)return;if(dst()>CLO){popMsg(p,"OUT OF RANGE");return;}var dmg=9+Math.floor(Math.random()*6);if(G.isOnline){fbDb.ref("matches/"+G.matchId+"/hits").push({att:G.localRole,dmg:dmg,type:"normal"});if(G.localRole==="p1"){G.p1atk=true;setTimeout(function(){G.p1atk=false;},200);}else{G.p2atk=true;setTimeout(function(){G.p2atk=false;},200);}}else{doAtk(p,dmg);}}
+function doKick(p){if(!G.active)return;if(G.isOnline){var myRoleNum=G.localRole==="p1"?1:2;if(p!==myRoleNum)return;}if(p===1&&G.p1atk)return;if(p===2&&G.p2atk)return;if(dst()>CLO){popMsg(p,"OUT OF RANGE");return;}var dmg=12+Math.floor(Math.random()*8);if(G.isOnline){fbDb.ref("matches/"+G.matchId+"/hits").push({att:G.localRole,dmg:dmg,type:"normal"});if(G.localRole==="p1"){G.p1atk=true;setTimeout(function(){G.p1atk=false;},200);}else{G.p2atk=true;setTimeout(function(){G.p2atk=false;},200);}}else{doAtk(p,dmg);}}
+function doSpc(p,type){if(!G.active)return;if(G.isOnline){var myRoleNum=G.localRole==="p1"?1:2;if(p!==myRoleNum)return;}var pw=p===1?G.p1p:G.p2p,cost=type==="super"?100:40;if(pw<cost){popMsg(p,"NEED POWER!");return;}var fig=p===1?G.p1f:G.p2f;if(!fig)return;var mv=null;for(var i=0;i<fig.moves.length;i++){if(fig.moves[i].type===type){mv=fig.moves[i];break;}}if(!mv)return;var d=dst(),maxR=type==="special1"?FAR:CLO*1.6;if(d>maxR){popMsg(p,"OUT OF RANGE");return;}if(type==="super")sSup();else sSpc();var arena=document.getElementById("arena");var fl=document.createElement("div");fl.className="sfx";fl.style.background="radial-gradient(circle,"+fig.color+"44 0%,transparent 70%)";arena.appendChild(fl);setTimeout(function(){if(fl.parentNode)fl.remove();},320);if(type==="special1"&&d>CLO)spProj(p,fig.color);var dmg=mv.damage+Math.floor(Math.random()*12);if(G.isOnline){fbDb.ref("matches/"+G.matchId+"/hits").push({att:G.localRole,dmg:dmg,type:type});if(p===1)G.p1p=Math.max(0,G.p1p-cost);else G.p2p=Math.max(0,G.p2p-cost);updH();hlMv(p,type);}else{var def=p===1?2:1,blk=p===1?G.p2blk:G.p1blk;if(blk&&type!=="super"){sBlk();popHit(p===1?G.p2x:G.p1x,"BLOCK","#44ffaa");addPow(def,6);}else{dealDmg(p,dmg,"special");popHit(p===1?G.p2x:G.p1x,mv.name,fig.color,true);addCb(p);}if(p===1)G.p1p=Math.max(0,G.p1p-cost);else G.p2p=Math.max(0,G.p2p-cost);updH();hlMv(p,type);}}
 function doAtk(p,dmg){if(p===1){G.p1atk=true;setTimeout(function(){G.p1atk=false;},200);}else{G.p2atk=true;setTimeout(function(){G.p2atk=false;},200);}sHit();var def=p===1?2:1,blk=p===1?G.p2blk:G.p1blk;if(blk){sBlk();popHit(p===1?G.p2x:G.p1x,"BLOCK","#44ffaa");addPow(p,5);addPow(def,8);return;}dealDmg(p,dmg,"normal");popHit(p===1?G.p2x:G.p1x,dmg,"var(--blb)");addPow(p,dmg*.8);addCb(p);}
 function dealDmg(att,dmg,type){var def=att===1?2:1,blk=att===1?G.p2blk:G.p1blk,w=AW();if(blk&&type!=="super")dmg=Math.floor(dmg*.12);var pd=att===1?1:-1;if(def===1){G.p1x=Math.max(WL,Math.min(w-WL,G.p1x-pd*PSH));G.p1stun=10;G.p1h=Math.max(0,G.p1h-dmg);if(G.p1h===0)endRound("ko",2);}else{G.p2x=Math.max(WL,Math.min(w-WL,G.p2x+pd*PSH));G.p2stun=10;G.p2h=Math.max(0,G.p2h-dmg);if(G.p2h===0)endRound("ko",1);}addPow(def,dmg*.35);updH();}
 function addPow(p,a){if(p===1)G.p1p=Math.min(100,G.p1p+a);else G.p2p=Math.min(100,G.p2p+a);updH();}
@@ -766,14 +781,14 @@ function aiTick(){
 }
 
 // ===================== TIMER =====================
-function startTimer(){if(G.rtime===999)return;if(G.ti)clearInterval(G.ti);G.ti=setInterval(function(){if(!G.paused&&G.active){G.timer--;updTmr();if(G.timer<=0)endRound("timeout");}},1000);}
+function startTimer(){if(G.rtime===999)return;if(G.ti)clearInterval(G.ti);if(G.isOnline&&G.localRole==="p2")return;G.ti=setInterval(function(){if(!G.paused&&G.active){G.timer--;updTmr();if(G.isOnline&&G.localRole==="p1"){fbDb.ref("matches/"+G.matchId+"/gameState").update({timer:G.timer});}if(G.timer<=0)endRound("timeout");}},1000);}
 function updTmr(){var t=document.getElementById("tmr");if(!t)return;t.textContent=G.rtime===999?"INF":Math.max(0,G.timer);t.style.color=G.timer<=10&&G.rtime!==999?"#ff4444":"var(--ph)";t.style.textShadow=G.timer<=10&&G.rtime!==999?"0 0 12px #f00":"0 0 12px var(--ph)";}
 
 // ===================== ROUND END =====================
-function endRound(reason,winner){if(!G.active)return;G.active=false;stopAll();stopBGM();if(reason==="timeout")winner=G.p1h>G.p2h?1:G.p2h>G.p1h?2:0;if(reason==="ko"){sKO();ann("K.O.!","ko");}if(winner===1)G.p1w++;else if(winner===2)G.p2w++;updDots();setTimeout(function(){if(G.p1w>=2||G.p2w>=2)showResult(winner);else{G.round++;initRound();}},2200);}
+function endRound(reason,winner){if(!G.active)return;G.active=false;stopAll();stopBGM();if(G.isOnline){if(G.localRole==="p1"){if(reason==="timeout")winner=G.p1h>G.p2h?1:G.p2h>G.p1h?2:0;fbDb.ref("matches/"+G.matchId+"/gameState").update({endRoundReason:reason,roundWinner:winner,round:G.round+1});localEndRound(reason,winner);}return;}if(reason==="timeout")winner=G.p1h>G.p2h?1:G.p2h>G.p1h?2:0;if(reason==="ko"){sKO();ann("K.O.!","ko");}if(winner===1)G.p1w++;else if(winner===2)G.p2w++;updDots();setTimeout(function(){if(G.p1w>=2||G.p2w>=2)showResult(winner);else{G.round++;initRound();}},2200);}
 function showResult(winner){sWin();var nm=winner===1?G.p1n:winner===2?G.p2n:"DRAW";var fig=winner===1?G.p1f:G.p2f;document.getElementById("resnm").textContent=nm;document.getElementById("resnm").style.color=fig?fig.color:"var(--blb)";document.getElementById("resnm").style.textShadow=fig?"0 0 38px "+fig.color:"0 0 38px var(--bl)";var fl=(winner===1&&G.p1h===100)||(winner===2&&G.p2h===100);document.getElementById("ressub").textContent=winner===0?"DRAW!":fl?"FLAWLESS VICTORY!":"WINNER!";document.getElementById("resasc").textContent=fig?getSp(fig.id,"i0"):"";document.getElementById("resasc").style.color=fig?fig.color:"var(--phd)";G.fighting=false;updateMyStatus("online");showScreen("screen-result");}
 function rematch(){G.round=1;G.p1w=0;G.p2w=0;startFight();}
-function endFight(){stopAll();stopBGM();G.fighting=false;G.paused=false;G.round=1;G.p1w=0;G.p2w=0;updateMyStatus("online");showScreen("screen-title");}
+function endFight(){stopAll();stopBGM();if(G.isOnline){cleanupOnlineMatch();}G.fighting=false;G.paused=false;G.round=1;G.p1w=0;G.p2w=0;updateMyStatus("online");showScreen("screen-title");}
 function stopAll(){if(G.raf){cancelAnimationFrame(G.raf);G.raf=null;}if(G.ti){clearInterval(G.ti);G.ti=null;}if(G.ai){clearInterval(G.ai);G.ai=null;}}
 
 // ===================== HUD =====================
@@ -1003,9 +1018,15 @@ function attachOutgoingChallengeListener(challengeRef,peerId,peerName,btn){
       btn.textContent="ACCEPTED";
       setChallengeStatusText(peerName+" accepted your challenge.");
       updateMyStatus("in-match");
+      G.isOnline=true;
+      G.localRole="p1";
+      G.opponentId=peerId;
+      G.matchId=myPlayerId<peerId?myPlayerId+"_"+peerId:peerId+"_"+myPlayerId;
       setTimeout(function(){
         prefillOnlineMatchNames(peerName);
         setMode("pvp");
+        startOnlineSelectionSync();
+        listenToGameState();
       },350);
     }else if(data.status==="declined"){
       btn.textContent="DECLINED";
@@ -1063,9 +1084,15 @@ function handleIncomingChallenge(snapshot){
       document.getElementById("chnotif").style.display="none";
       setChallengeStatusText("Match accepted. Entering the arena.");
       updateMyStatus("in-match");
+      G.isOnline=true;
+      G.localRole="p2";
+      G.opponentId=challengeId;
+      G.matchId=myPlayerId<challengeId?myPlayerId+"_"+challengeId:challengeId+"_"+myPlayerId;
       setTimeout(function(){
         prefillOnlineMatchNames(data.from||"WARRIOR");
         setMode("pvp");
+        startOnlineSelectionSync();
+        listenToGameState();
       },350);
       return;
     }
@@ -1091,6 +1118,253 @@ function prefillOnlineMatchNames(opponentName){
   G.p1n=p1&&p1.value?p1.value:G.p1n;
   G.p2n=p2&&p2.value?p2.value:G.p2n;
 }
+
+
+// ===================== ONLINE MULTIPLAYER NETWORK SYNC HELPERS =====================
+var selectionRef = null;
+var opponentRef = null;
+var gameStateRef = null;
+var hitsRef = null;
+
+function startOnlineSelectionSync() {
+  if (!G.isOnline || !fbDb || !G.matchId) return;
+  if (selectionRef) selectionRef.off();
+  
+  if (G.localRole === "p1") {
+    fbDb.ref("matches/" + G.matchId + "/selection").remove();
+  }
+  
+  selectionRef = fbDb.ref("matches/" + G.matchId + "/selection");
+  selectionRef.on("value", function(snapshot) {
+    var data = snapshot.val();
+    if (!data) return;
+    
+    var oppRole = G.localRole === "p1" ? "p2" : "p1";
+    if (data[oppRole] !== undefined) {
+      var idx = data[oppRole];
+      var f = FT[idx];
+      if (oppRole === "p1") {
+        G.p1f = f; G.p1ok = data.p1ok || false;
+        document.getElementById("p1asc").textContent = getSp(f.id, "i0");
+        document.getElementById("p1asc").style.color = f.color;
+        document.getElementById("p1fn").textContent = f.name;
+        document.getElementById("p1bio").textContent = f.bio;
+        document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp1");});
+        var cell = document.querySelector('.cc[data-idx="' + idx + '"]');
+        if (cell) cell.classList.add("sp1");
+      } else {
+        G.p2f = f; G.p2ok = data.p2ok || false;
+        document.getElementById("p2asc").textContent = getSp(f.id, "i0");
+        document.getElementById("p2asc").style.color = f.color;
+        document.getElementById("p2fn").textContent = f.name;
+        document.getElementById("p2bio").textContent = f.bio;
+        document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp2");});
+        var cell = document.querySelector('.cc[data-idx="' + idx + '"]');
+        if (cell) cell.classList.add("sp2");
+      }
+      chkPick();
+    }
+    
+    if (data.p1ok && data.p2ok) {
+      var btn = document.getElementById("fight-btn");
+      if (btn) {
+        btn.style.opacity = "1";
+        btn.style.pointerEvents = "auto";
+        btn.style.borderColor = "var(--blb)";
+        btn.style.color = "var(--blb)";
+      }
+      if (G.localRole === "p1") {
+        fbDb.ref("matches/" + G.matchId + "/gameState").set({ started: true });
+      }
+    }
+  });
+}
+
+function onlinePick(idx) {
+  if (!G.isOnline || !fbDb || !G.matchId) return;
+  var role = G.localRole;
+  var updates = {};
+  updates[role] = idx;
+  updates[role + "ok"] = true;
+  fbDb.ref("matches/" + G.matchId + "/selection").update(updates);
+  
+  var f = FT[idx];
+  if (role === "p1") {
+    G.p1f = f; G.p1ok = true;
+    document.getElementById("p1asc").textContent = getSp(f.id, "i0");
+    document.getElementById("p1asc").style.color = f.color;
+    document.getElementById("p1fn").textContent = f.name;
+    document.getElementById("p1bio").textContent = f.bio;
+    document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp1");});
+    var cell = document.querySelector('.cc[data-idx="' + idx + '"]');
+    if (cell) cell.classList.add("sp1");
+  } else {
+    G.p2f = f; G.p2ok = true;
+    document.getElementById("p2asc").textContent = getSp(f.id, "i0");
+    document.getElementById("p2asc").style.color = f.color;
+    document.getElementById("p2fn").textContent = f.name;
+    document.getElementById("p2bio").textContent = f.bio;
+    document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp2");});
+    var cell = document.querySelector('.cc[data-idx="' + idx + '"]');
+    if (cell) cell.classList.add("sp2");
+  }
+}
+
+function listenToGameState() {
+  if (!G.isOnline || !fbDb || !G.matchId) return;
+  if (gameStateRef) gameStateRef.off();
+  gameStateRef = fbDb.ref("matches/" + G.matchId + "/gameState");
+  gameStateRef.on("value", function(snapshot) {
+    var data = snapshot.val();
+    if (!data) return;
+    if (data.started && G.screen === "screen-select") {
+      startFight();
+    }
+    if (data.started && G.isOnline) {
+      if (G.localRole === "p2") {
+        if (data.timer !== undefined) {
+          G.timer = data.timer;
+          updTmr();
+        }
+        if (data.round !== undefined && G.round < data.round) {
+          G.round = data.round;
+          initRound();
+        }
+        if (data.endRoundReason) {
+          localEndRound(data.endRoundReason, data.roundWinner);
+        }
+      }
+    }
+  });
+}
+
+function pushMyOnlineState() {
+  if (!G.isOnline || !fbDb || !G.matchId) return;
+  var role = G.localRole;
+  var data = {};
+  if (role === "p1") {
+    data = {
+      x: G.p1x, y: G.p1y, vy: G.p1vy, g: G.p1g,
+      face: G.p1face, blk: G.p1blk, atk: G.p1atk,
+      h: G.p1h, p: G.p1p, stun: G.p1stun
+    };
+  } else {
+    data = {
+      x: G.p2x, y: G.p2y, vy: G.p2vy, g: G.p2g,
+      face: G.p2face, blk: G.p2blk, atk: G.p2atk,
+      h: G.p2h, p: G.p2p, stun: G.p2stun
+    };
+  }
+  fbDb.ref("matches/" + G.matchId + "/" + role).set(data);
+}
+
+function listenToOnlineOpponent() {
+  if (!G.isOnline || !fbDb || !G.matchId) return;
+  var oppRole = G.localRole === "p1" ? "p2" : "p1";
+  if (opponentRef) opponentRef.off();
+  opponentRef = fbDb.ref("matches/" + G.matchId + "/" + oppRole);
+  opponentRef.on("value", function(snapshot) {
+    var data = snapshot.val();
+    if (!data) return;
+    if (oppRole === "p1") {
+      G.p1x = data.x; G.p1y = data.y; G.p1vy = data.vy; G.p1g = data.g;
+      G.p1face = data.face; G.p1blk = data.blk; G.p1atk = data.atk;
+      G.p1h = data.h; G.p1p = data.p; G.p1stun = data.stun;
+    } else {
+      G.p2x = data.x; G.p2y = data.y; G.p2vy = data.vy; G.p2g = data.g;
+      G.p2face = data.face; G.p2blk = data.blk; G.p2atk = data.atk;
+      G.p2h = data.h; G.p2p = data.p; G.p2stun = data.stun;
+    }
+    updH();
+  });
+}
+
+function listenToOnlineHits() {
+  if (!G.isOnline || !fbDb || !G.matchId) return;
+  if (hitsRef) hitsRef.off();
+  hitsRef = fbDb.ref("matches/" + G.matchId + "/hits");
+  hitsRef.on("child_added", function(snapshot) {
+    var data = snapshot.val();
+    if (!data) return;
+    if (data.att !== G.localRole) {
+      var myRole = G.localRole;
+      var blk = myRole === "p1" ? G.p1blk : G.p2blk;
+      var dmg = data.dmg;
+      if (blk && data.type !== "super") {
+        dmg = Math.max(1, Math.floor(dmg * 0.12));
+        sBlk();
+        popHit(myRole === "p1" ? G.p1x : G.p2x, "BLOCK", "#44ffaa");
+        addPow(myRole === "p1" ? 1 : 2, 5);
+        addPow(data.att === "p1" ? 1 : 2, 8);
+      } else {
+        sHit();
+        var attRoleNum = data.att === "p1" ? 1 : 2;
+        var myRoleNum = myRole === "p1" ? 1 : 2;
+        dealLocalDmg(myRoleNum, dmg, data.type);
+        popHit(myRole === "p1" ? G.p1x : G.p2x, dmg, data.att === "p1" ? "var(--blb)" : "var(--am)");
+        addPow(attRoleNum, dmg * 0.8);
+        addCb(attRoleNum);
+      }
+      snapshot.ref.remove();
+    }
+  });
+}
+
+function dealLocalDmg(def, dmg, type) {
+  var w = AW();
+  var pd = def === 1 ? -1 : 1;
+  if (def === 1) {
+    G.p1x = Math.max(WL, Math.min(w - WL, G.p1x - pd * PSH));
+    G.p1stun = 10;
+    G.p1h = Math.max(0, G.p1h - dmg);
+    updH();
+    if (G.p1h === 0) {
+      endRound("ko", 2);
+    }
+  } else {
+    G.p2x = Math.max(WL, Math.min(w - WL, G.p2x + pd * PSH));
+    G.p2stun = 10;
+    G.p2h = Math.max(0, G.p2h - dmg);
+    updH();
+    if (G.p2h === 0) {
+      endRound("ko", 1);
+    }
+  }
+}
+
+function localEndRound(reason, winner) {
+  G.active = false;
+  stopAll();
+  stopBGM();
+  if (reason === "ko") {
+    sKO();
+    ann("K.O.!", "ko");
+  }
+  if (winner === 1) G.p1w++; else if (winner === 2) G.p2w++;
+  updDots();
+  setTimeout(function(){
+    if (G.p1w >= 2 || G.p2w >= 2) {
+      showResult(winner);
+    } else {
+      G.round++;
+      initRound();
+    }
+  }, 2200);
+}
+
+function cleanupOnlineMatch() {
+  if (opponentRef) { opponentRef.off(); opponentRef = null; }
+  if (hitsRef) { hitsRef.off(); hitsRef = null; }
+  if (gameStateRef) { gameStateRef.off(); gameStateRef = null; }
+  if (selectionRef) { selectionRef.off(); selectionRef = null; }
+  if (fbDb && G.matchId) {
+    fbDb.ref("matches/" + G.matchId).remove();
+  }
+  G.isOnline = false;
+  G.localRole = null;
+  G.matchId = null;
+}
+
 
 // ===================== DISCORD OAUTH2 (REAL IMPLICIT GRANT) =====================
 var DISCORD_CLIENT_ID = "1513108516792045638";
@@ -1306,13 +1580,27 @@ function acceptChallenge(){
   if(!currentIncomingChallenge||!currentIncomingChallenge.ref)return;
   document.getElementById("chnotif").style.display="none";
   sSup();
+  var oppId=currentIncomingChallenge.id;
+  G.isOnline=true;
+  G.localRole="p2";
+  G.opponentId=oppId;
+  G.matchId=myPlayerId<oppId?myPlayerId+"_"+oppId:oppId+"_"+myPlayerId;
   currentIncomingChallenge.ref.update({status:"accepted",acceptedAt:firebase.database.ServerValue.TIMESTAMP},function(err){
     if(err){
       console.error("Accept challenge error:",err);
       updateMyStatus("online");
+      G.isOnline=false;
+      G.localRole=null;
+      G.matchId=null;
       return;
     }
     setChallengeStatusText("Challenge accepted. Entering the arena.");
+    setTimeout(function(){
+      prefillOnlineMatchNames(currentIncomingChallenge?currentIncomingChallenge.data.from:"WARRIOR");
+      setMode("pvp");
+      startOnlineSelectionSync();
+      listenToGameState();
+    },350);
   });
 }
 function declineChallenge(){
