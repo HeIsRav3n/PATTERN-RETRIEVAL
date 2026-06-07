@@ -818,13 +818,13 @@ function buildArena(){
 // ===================== ONLINE =====================
 // ===================== FIREBASE REALTIME MULTIPLAYER =====================
 var firebaseConfig = {
-  apiKey: "AIzaSyCqZu-vL_-1j3j2bZc3zY7x4p8w9q0r1s2t",
-  authDomain: "kombat-retrieval.firebaseapp.com",
-  projectId: "kombat-retrieval",
-  databaseURL: "https://kombat-retrieval-default-rtdb.firebaseio.com",
-  storageBucket: "kombat-retrieval.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890"
+  apiKey: "AIzaSyAF7xrO9uL_dVvDQ516GFAQuqcFcQ4BzjA",
+  authDomain: "pattern-retrieval-202606-9809f.firebaseapp.com",
+  projectId: "pattern-retrieval-202606-9809f",
+  databaseURL: "https://pattern-retrieval-202606-9809f-default-rtdb.firebaseio.com",
+  storageBucket: "pattern-retrieval-202606-9809f.firebasestorage.app",
+  messagingSenderId: "589089597604",
+  appId: "1:589089597604:web:40a1018533e3627831de31"
 };
 
 var fbApp=null,fbDb=null,fbInitialized=false;
@@ -1160,7 +1160,7 @@ function discordLogin() {
     "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top + ",toolbar=no,menubar=no,scrollbars=yes"
   );
   if (!discordState.loginPopup) {
-    // Popup blocked — fallback to redirect
+    // Popup blocked - fallback to redirect
     if (statusEl) statusEl.textContent = "Popup blocked. Redirecting...";
     setTimeout(function() { window.location.href = url; }, 800);
     return;
