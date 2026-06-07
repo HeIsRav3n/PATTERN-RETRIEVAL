@@ -833,6 +833,7 @@ var myConnectionRef=null,challengeInboxRef=null,presenceHeartbeat=null;
 var activeChallengeListeners={};
 var currentIncomingChallenge=null;
 var challengeState={pendingInbound:{},pendingOutbound:{}};
+var serverTimeOffset=0;
 function initFirebase(){
   try{
     if(typeof firebase==="undefined"||!firebase.database)throw new Error("Firebase SDK failed to load");
@@ -840,15 +841,19 @@ function initFirebase(){
     fbDb=firebase.database();
     fbInitialized=true;
     console.log("Firebase initialized for multiplayer");
+    fbDb.ref(".info/serverTimeOffset").on("value",function(snap){
+      serverTimeOffset=snap.val()||0;
+    });
   }catch(e){
     console.error("Firebase init error:",e);
     fbInitialized=false;
   }
 }
-function nowMs(){return Date.now();}
+function nowMs(){return Date.now()+serverTimeOffset;}
 function isFreshPresence(player){
   if(!player||!player.timestamp)return false;
-  return nowMs()-player.timestamp<45000;
+  var diff=nowMs()-player.timestamp;
+  return diff<120000;
 }
 function stopPresenceHeartbeat(){
   if(presenceHeartbeat){clearInterval(presenceHeartbeat);presenceHeartbeat=null;}
