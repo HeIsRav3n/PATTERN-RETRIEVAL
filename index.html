@@ -640,7 +640,7 @@ document.addEventListener("keydown",function(e){
 });
 
 // ===================== MODE & CHARACTER SELECT =====================
-function setMode(m){G.mode=m;G.p1f=null;G.p2f=null;G.p1ok=false;G.p2ok=false;buildGrid();var p2l=document.getElementById("p2lbl"),sh=document.getElementById("shint");if(m==="pvc"){p2l.textContent="CPU - AUTO";sh.textContent="P1: CLICK to select. CPU picks automatically.";}else if(m==="pvp"){p2l.textContent="P2 - SELECT";sh.textContent="P1: LEFT-CLICK   |   P2: RIGHT-CLICK";}else{p2l.textContent="P2 - ONLINE";sh.textContent="P1: CLICK to select.";}G.p1n=document.getElementById("p1ni").value||"WARRIOR-1";G.p2n=document.getElementById("p2ni").value||"WARRIOR-2";showScreen("screen-select");sSel();}
+function setMode(m){G.mode=m;if(!G.isOnline){G.p1f=null;G.p2f=null;G.p1ok=false;G.p2ok=false;}buildGrid();var p2l=document.getElementById("p2lbl"),sh=document.getElementById("shint");if(m==="pvc"){p2l.textContent="CPU - AUTO";sh.textContent="P1: CLICK to select. CPU picks automatically.";}else if(m==="pvp"){p2l.textContent="P2 - SELECT";sh.textContent="P1: LEFT-CLICK   |   P2: RIGHT-CLICK";}else{p2l.textContent="P2 - ONLINE";sh.textContent="P1: CLICK to select.";}G.p1n=document.getElementById("p1ni").value||"WARRIOR-1";G.p2n=document.getElementById("p2ni").value||"WARRIOR-2";showScreen("screen-select");sSel();}
 function buildGrid(){var g=document.getElementById("cgrid");g.innerHTML="";FT.forEach(function(f,i){var c=document.createElement("div");c.className="cc";c.dataset.idx=i;c.style.color=f.color;var p=document.createElement("pre");p.className="cc-asc";p.textContent=getSp(f.id,"i0");var n=document.createElement("div");n.className="cc-nm";n.textContent=f.name.split(" ")[0];c.appendChild(p);c.appendChild(n);c.addEventListener("click",function(){if(G.isOnline){onlinePick(i);}else{pick(i,"p1");}});c.addEventListener("contextmenu",function(e){e.preventDefault();if(!G.isOnline&&G.mode==="pvp")pick(i,"p2");});g.appendChild(c);});}
 function pick(idx,pl){var f=FT[idx];sSel();if(pl==="p1"){G.p1f=f;G.p1ok=true;document.getElementById("p1asc").textContent=getSp(f.id,"i0");document.getElementById("p1asc").style.color=f.color;document.getElementById("p1fn").textContent=f.name;document.getElementById("p1bio").textContent=f.bio;document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp1");});document.querySelector('.cc[data-idx="'+idx+'"]').classList.add("sp1");if(G.mode==="pvc"){setTimeout(function(){var ci;do{ci=Math.floor(Math.random()*FT.length);}while(ci===idx);var cf=FT[ci];G.p2f=cf;G.p2ok=true;document.getElementById("p2asc").textContent=getSp(cf.id,"i0");document.getElementById("p2asc").style.color=cf.color;document.getElementById("p2fn").textContent=cf.name+" [CPU]";document.getElementById("p2bio").textContent=cf.bio;document.querySelector('.cc[data-idx="'+ci+'"]').classList.add("sp2");chkPick();},700);}}else{G.p2f=f;G.p2ok=true;document.getElementById("p2asc").textContent=getSp(f.id,"i0");document.getElementById("p2asc").style.color=f.color;document.getElementById("p2fn").textContent=f.name;document.getElementById("p2bio").textContent=f.bio;document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp2");});document.querySelector('.cc[data-idx="'+idx+'"]').classList.add("sp2");}chkPick();}
 function chkPick(){if(G.isOnline)return;if(G.p1ok&&G.p2ok){var b=document.getElementById("fight-btn");b.style.opacity="1";b.style.pointerEvents="auto";b.style.borderColor="var(--blb)";b.style.color="var(--blb)";}}
@@ -1082,6 +1082,8 @@ function handleIncomingChallenge(snapshot){
       delete challengeState.pendingInbound[challengeId];
       currentIncomingChallenge=null;
       document.getElementById("chnotif").style.display="none";
+      // Guard: acceptChallenge() already set this up; don't re-init
+      if(G.isOnline)return;
       setChallengeStatusText("Match accepted. Entering the arena.");
       updateMyStatus("in-match");
       G.isOnline=true;
@@ -1130,39 +1132,35 @@ function startOnlineSelectionSync() {
   if (!G.isOnline || !fbDb || !G.matchId) return;
   if (selectionRef) selectionRef.off();
   
-  if (G.localRole === "p1") {
-    fbDb.ref("matches/" + G.matchId + "/selection").remove();
-  }
-  
   selectionRef = fbDb.ref("matches/" + G.matchId + "/selection");
   selectionRef.on("value", function(snapshot) {
     var data = snapshot.val();
     if (!data) return;
     
-    var oppRole = G.localRole === "p1" ? "p2" : "p1";
-    if (data[oppRole] !== undefined) {
-      var idx = data[oppRole];
-      var f = FT[idx];
-      if (oppRole === "p1") {
-        G.p1f = f; G.p1ok = data.p1ok || false;
-        document.getElementById("p1asc").textContent = getSp(f.id, "i0");
-        document.getElementById("p1asc").style.color = f.color;
-        document.getElementById("p1fn").textContent = f.name;
-        document.getElementById("p1bio").textContent = f.bio;
-        document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp1");});
-        var cell = document.querySelector('.cc[data-idx="' + idx + '"]');
-        if (cell) cell.classList.add("sp1");
-      } else {
-        G.p2f = f; G.p2ok = data.p2ok || false;
-        document.getElementById("p2asc").textContent = getSp(f.id, "i0");
-        document.getElementById("p2asc").style.color = f.color;
-        document.getElementById("p2fn").textContent = f.name;
-        document.getElementById("p2bio").textContent = f.bio;
-        document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp2");});
-        var cell = document.querySelector('.cc[data-idx="' + idx + '"]');
-        if (cell) cell.classList.add("sp2");
-      }
-      chkPick();
+    // Sync both p1 and p2 picks from the snapshot so both players see full state
+    if (data.p1 !== undefined) {
+      var idx1 = data.p1;
+      var f1 = FT[idx1];
+      G.p1f = f1; G.p1ok = data.p1ok || false;
+      document.getElementById("p1asc").textContent = getSp(f1.id, "i0");
+      document.getElementById("p1asc").style.color = f1.color;
+      document.getElementById("p1fn").textContent = f1.name;
+      document.getElementById("p1bio").textContent = f1.bio;
+      document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp1");});
+      var cell1 = document.querySelector('.cc[data-idx="' + idx1 + '"]');
+      if (cell1) cell1.classList.add("sp1");
+    }
+    if (data.p2 !== undefined) {
+      var idx2 = data.p2;
+      var f2 = FT[idx2];
+      G.p2f = f2; G.p2ok = data.p2ok || false;
+      document.getElementById("p2asc").textContent = getSp(f2.id, "i0");
+      document.getElementById("p2asc").style.color = f2.color;
+      document.getElementById("p2fn").textContent = f2.name;
+      document.getElementById("p2bio").textContent = f2.bio;
+      document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("sp2");});
+      var cell2 = document.querySelector('.cc[data-idx="' + idx2 + '"]');
+      if (cell2) cell2.classList.add("sp2");
     }
     
     if (data.p1ok && data.p2ok) {
@@ -1210,14 +1208,17 @@ function onlinePick(idx) {
   }
 }
 
+var onlineFightStarted = false;
 function listenToGameState() {
   if (!G.isOnline || !fbDb || !G.matchId) return;
   if (gameStateRef) gameStateRef.off();
+  onlineFightStarted = false;
   gameStateRef = fbDb.ref("matches/" + G.matchId + "/gameState");
   gameStateRef.on("value", function(snapshot) {
     var data = snapshot.val();
     if (!data) return;
-    if (data.started && G.screen === "screen-select") {
+    if (data.started && G.screen === "screen-select" && !onlineFightStarted) {
+      onlineFightStarted = true;
       startFight();
     }
     if (data.started && G.isOnline) {
