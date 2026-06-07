@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>KOMBAT//RETRIEVAL</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2300cccc'/%3E%3Crect x='20' y='20' width='60' height='60' fill='%23000000'/%3E%3Crect x='25' y='25' width='15' height='15' fill='%23ff00ff'/%3E%3Crect x='60' y='25' width='15' height='15' fill='%23ff00ff'/%3E%3Crect x='40' y='55' width='20' height='15' fill='%23ffffff'/%3E%3Crect x='35' y='55' width='5' height='5' fill='%23000000'/%3E%3Crect x='60' y='55' width='5' height='5' fill='%23000000'/%3E%3C/svg%3E">
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap');
 :root{--ph:#00ff41;--phd:#00cc33;--phg:#39ff14;--am:#ffb800;--bl:#cc0000;--blb:#ff1a1a;--bg:#000500;--sbg:#010801;}
@@ -637,7 +639,7 @@ function pick(idx,pl){var f=FT[idx];sSel();if(pl==="p1"){G.p1f=f;G.p1ok=true;doc
 function chkPick(){if(G.p1ok&&G.p2ok){var b=document.getElementById("fight-btn");b.style.opacity="1";b.style.pointerEvents="auto";b.style.borderColor="var(--blb)";b.style.color="var(--blb)";}}
 
 // ===================== FIGHT =====================
-function startFight(){if(!G.p1f||!G.p2f)return;sSup();G.p1n=document.getElementById("p1ni").value||G.p1f.name;G.p2n=document.getElementById("p2ni").value||G.p2f.name;showScreen("screen-fight");buildMoves();buildArena();setTimeout(initRound,120);}
+function startFight(){if(!G.p1f||!G.p2f)return;sSup();G.p1n=document.getElementById("p1ni").value||G.p1f.name;G.p2n=document.getElementById("p2ni").value||G.p2f.name;updateMyStatus("in-match");showScreen("screen-fight");buildMoves();buildArena();setTimeout(initRound,120);}
 function initRound(){stopAll();G.p1h=100;G.p2h=100;G.p1p=0;G.p2p=0;G.paused=false;G.fighting=true;G.active=false;G.p1x=Math.round(AW()*.25);G.p2x=Math.round(AW()*.75);G.p1y=GY();G.p2y=GY();G.p1vy=0;G.p2vy=0;G.p1g=true;G.p2g=true;G.p1face=1;G.p2face=-1;G.p1blk=false;G.p2blk=false;G.p1atk=false;G.p2atk=false;G.p1stun=0;G.p2stun=0;G.p1cb=0;G.p2cb=0;G.p1ct=0;G.p2ct=0;G.fc=0;G.af=0;G.timer=G.rtime===999?90:G.rtime;
   var gnd=document.getElementById("ground"),ar=ARENAS[CUR_ARENA];
   if(gnd){gnd.style.bottom=(AH()-GY()-2)+"px";gnd.style.background=ar.groundColor;gnd.style.boxShadow="0 0 12px "+ar.groundColor;}
@@ -769,9 +771,9 @@ function updTmr(){var t=document.getElementById("tmr");if(!t)return;t.textConten
 
 // ===================== ROUND END =====================
 function endRound(reason,winner){if(!G.active)return;G.active=false;stopAll();stopBGM();if(reason==="timeout")winner=G.p1h>G.p2h?1:G.p2h>G.p1h?2:0;if(reason==="ko"){sKO();ann("K.O.!","ko");}if(winner===1)G.p1w++;else if(winner===2)G.p2w++;updDots();setTimeout(function(){if(G.p1w>=2||G.p2w>=2)showResult(winner);else{G.round++;initRound();}},2200);}
-function showResult(winner){sWin();var nm=winner===1?G.p1n:winner===2?G.p2n:"DRAW";var fig=winner===1?G.p1f:G.p2f;document.getElementById("resnm").textContent=nm;document.getElementById("resnm").style.color=fig?fig.color:"var(--blb)";document.getElementById("resnm").style.textShadow=fig?"0 0 38px "+fig.color:"0 0 38px var(--bl)";var fl=(winner===1&&G.p1h===100)||(winner===2&&G.p2h===100);document.getElementById("ressub").textContent=winner===0?"DRAW!":fl?"FLAWLESS VICTORY!":"WINNER!";document.getElementById("resasc").textContent=fig?getSp(fig.id,"i0"):"";document.getElementById("resasc").style.color=fig?fig.color:"var(--phd)";G.fighting=false;showScreen("screen-result");}
+function showResult(winner){sWin();var nm=winner===1?G.p1n:winner===2?G.p2n:"DRAW";var fig=winner===1?G.p1f:G.p2f;document.getElementById("resnm").textContent=nm;document.getElementById("resnm").style.color=fig?fig.color:"var(--blb)";document.getElementById("resnm").style.textShadow=fig?"0 0 38px "+fig.color:"0 0 38px var(--bl)";var fl=(winner===1&&G.p1h===100)||(winner===2&&G.p2h===100);document.getElementById("ressub").textContent=winner===0?"DRAW!":fl?"FLAWLESS VICTORY!":"WINNER!";document.getElementById("resasc").textContent=fig?getSp(fig.id,"i0"):"";document.getElementById("resasc").style.color=fig?fig.color:"var(--phd)";G.fighting=false;updateMyStatus("online");showScreen("screen-result");}
 function rematch(){G.round=1;G.p1w=0;G.p2w=0;startFight();}
-function endFight(){stopAll();stopBGM();G.fighting=false;G.paused=false;G.round=1;G.p1w=0;G.p2w=0;showScreen("screen-title");}
+function endFight(){stopAll();stopBGM();G.fighting=false;G.paused=false;G.round=1;G.p1w=0;G.p2w=0;updateMyStatus("online");showScreen("screen-title");}
 function stopAll(){if(G.raf){cancelAnimationFrame(G.raf);G.raf=null;}if(G.ti){clearInterval(G.ti);G.ti=null;}if(G.ai){clearInterval(G.ai);G.ai=null;}}
 
 // ===================== HUD =====================
@@ -814,6 +816,277 @@ function buildArena(){
 }
 
 // ===================== ONLINE =====================
+// ===================== FIREBASE REALTIME MULTIPLAYER =====================
+var firebaseConfig = {
+  apiKey: "AIzaSyCqZu-vL_-1j3j2bZc3zY7x4p8w9q0r1s2t",
+  authDomain: "kombat-retrieval.firebaseapp.com",
+  projectId: "kombat-retrieval",
+  databaseURL: "https://kombat-retrieval-default-rtdb.firebaseio.com",
+  storageBucket: "kombat-retrieval.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890"
+};
+
+var fbApp=null,fbDb=null,fbInitialized=false;
+var onlinePlayersRef=null,myPlayerRef=null,mpls=[],myPlayerId=null;
+var myConnectionRef=null,challengeInboxRef=null,presenceHeartbeat=null;
+var activeChallengeListeners={};
+var currentIncomingChallenge=null;
+var challengeState={pendingInbound:{},pendingOutbound:{}};
+function initFirebase(){
+  try{
+    if(typeof firebase==="undefined"||!firebase.database)throw new Error("Firebase SDK failed to load");
+    if(!firebase.apps.length){fbApp=firebase.initializeApp(firebaseConfig);}else{fbApp=firebase.app();}
+    fbDb=firebase.database();
+    fbInitialized=true;
+    console.log("Firebase initialized for multiplayer");
+  }catch(e){
+    console.error("Firebase init error:",e);
+    fbInitialized=false;
+  }
+}
+function nowMs(){return Date.now();}
+function isFreshPresence(player){
+  if(!player||!player.timestamp)return false;
+  return nowMs()-player.timestamp<45000;
+}
+function stopPresenceHeartbeat(){
+  if(presenceHeartbeat){clearInterval(presenceHeartbeat);presenceHeartbeat=null;}
+}
+function startPresenceHeartbeat(){
+  stopPresenceHeartbeat();
+  if(!myPlayerRef)return;
+  presenceHeartbeat=setInterval(function(){
+    try{
+      myPlayerRef.update({
+        timestamp:firebase.database.ServerValue.TIMESTAMP,
+        status:(G.fighting||G.screen==="screen-fight")?"in-match":"online"
+      });
+    }catch(e){console.error("Presence heartbeat error:",e);}
+  },15000);
+}
+function cleanupOnlinePresence(){
+  stopPresenceHeartbeat();
+  if(onlinePlayersRef){onlinePlayersRef.off();onlinePlayersRef=null;}
+  if(challengeInboxRef){challengeInboxRef.off();challengeInboxRef=null;}
+  if(myConnectionRef){myConnectionRef.off();myConnectionRef=null;}
+  Object.keys(activeChallengeListeners).forEach(function(path){
+    try{activeChallengeListeners[path].off();}catch(e){}
+  });
+  activeChallengeListeners={};
+  challengeState.pendingInbound={};
+  challengeState.pendingOutbound={};
+  currentIncomingChallenge=null;
+  try{
+    if(myPlayerRef){myPlayerRef.remove();}
+  }catch(e){console.error("Presence cleanup error:",e);}
+  myPlayerRef=null;
+  myPlayerId=null;
+}
+function updateMyStatus(status){
+  if(!myPlayerRef)return;
+  try{
+    myPlayerRef.update({
+      status:status||"online",
+      timestamp:firebase.database.ServerValue.TIMESTAMP
+    });
+  }catch(e){console.error("Status update error:",e);}
+}
+function addPlayerToOnline(username,discordId,status){
+  if(!fbDb)return;
+  try{
+    myPlayerId=discordId.replace(/[^a-zA-Z0-9_-]/g,"_");
+    myPlayerRef=fbDb.ref("online/"+myPlayerId);
+    myPlayerRef.set({
+      name:username,
+      discordId:discordId,
+      status:status||"online",
+      timestamp:firebase.database.ServerValue.TIMESTAMP,
+      wins:Math.floor(Math.random()*250),
+      rank:"KLASS-"+Math.floor(Math.random()*10+1)
+    });
+    myConnectionRef=fbDb.ref(".info/connected");
+    myConnectionRef.on("value",function(snapshot){
+      if(snapshot.val()!==true||!myPlayerRef)return;
+      myPlayerRef.onDisconnect().remove();
+      myPlayerRef.update({timestamp:firebase.database.ServerValue.TIMESTAMP,status:status||"online"});
+    });
+    startPresenceHeartbeat();
+    listenToChallenges();
+    listenToOnlinePlayers();
+    // Remove player on page unload/close
+    window.addEventListener("beforeunload",function(){cleanupOnlinePresence();});
+  }catch(e){console.error("Add player error:",e);}
+}
+
+function listenToOnlinePlayers(){
+  if(!fbDb)return;
+  try{
+    onlinePlayersRef=fbDb.ref("online");
+    onlinePlayersRef.on("value",function(snapshot){
+      mpls=[];
+      var onlineCount=0;
+      var data=snapshot.val();
+      if(data){
+        for(var key in data){
+          if(key!==myPlayerId){
+            var p=data[key];
+            if(!isFreshPresence(p))continue;
+            if((p.status||"online")==="online")onlineCount++;
+            mpls.push({name:p.name,rank:p.rank||"KLASS-5",status:p.status||"online",wins:p.wins||0,id:key});
+          }
+        }
+      }
+      buildOnlineList();
+      document.getElementById("ocnt").textContent=onlineCount+" online";
+    },function(err){console.error("Listen error:",err);});
+  }catch(e){console.error("Listen players error:",e);}
+}
+
+function sendChallengeToPeer(peerId,peerName,btn){
+  if(!fbDb||!myPlayerId)return;
+  sSpc();btn.textContent="SENDING...";btn.disabled=true;
+  try{
+    var challengeRef=fbDb.ref("challenges/"+peerId+"/"+myPlayerId);
+    var payload={
+      from:G.discordUser,
+      fromId:myPlayerId,
+      fromDiscordId:G.discordId,
+      toId:peerId,
+      toName:peerName,
+      timestamp:firebase.database.ServerValue.TIMESTAMP,
+      status:"pending"
+    };
+    challengeRef.set(payload,function(err){
+      if(err){
+        btn.textContent="ERROR";btn.disabled=false;
+        console.error("Challenge send error:",err);
+      }else{
+        challengeState.pendingOutbound[peerId]=true;
+        btn.textContent="PENDING...";
+        attachOutgoingChallengeListener(challengeRef,peerId,peerName,btn);
+      }
+    });
+  }catch(e){
+    console.error("Send challenge error:",e);
+    btn.textContent="CHALLENGE";btn.disabled=false;
+  }
+}
+
+function attachOutgoingChallengeListener(challengeRef,peerId,peerName,btn){
+  var path=challengeRef.toString();
+  if(activeChallengeListeners[path]){
+    try{activeChallengeListeners[path].off();}catch(e){}
+  }
+  var listener=challengeRef;
+  listener.on("value",function(snapshot){
+    var data=snapshot.val();
+    if(!data){
+      btn.textContent="CHALLENGE";
+      btn.disabled=false;
+      delete challengeState.pendingOutbound[peerId];
+      listener.off();
+      delete activeChallengeListeners[path];
+      return;
+    }
+    if(data.status==="pending"){
+      btn.textContent="PENDING...";
+      btn.disabled=true;
+      return;
+    }
+    if(data.status==="accepted"){
+      btn.textContent="ACCEPTED";
+      setChallengeStatusText(peerName+" accepted your challenge.");
+      updateMyStatus("in-match");
+      setTimeout(function(){
+        prefillOnlineMatchNames(peerName);
+        setMode("pvp");
+      },350);
+    }else if(data.status==="declined"){
+      btn.textContent="DECLINED";
+      setChallengeStatusText(peerName+" declined your challenge.");
+      updateMyStatus("online");
+      setTimeout(function(){
+        if(btn){btn.textContent="CHALLENGE";btn.disabled=false;}
+      },1800);
+    }
+    delete challengeState.pendingOutbound[peerId];
+    setTimeout(function(){
+      try{challengeRef.remove();}catch(e){}
+      listener.off();
+      delete activeChallengeListeners[path];
+    },data.status==="accepted"?2200:1200);
+  },function(err){
+    console.error("Outgoing challenge listen error:",err);
+    btn.textContent="CHALLENGE";
+    btn.disabled=false;
+    delete challengeState.pendingOutbound[peerId];
+  });
+  activeChallengeListeners[path]=listener;
+}
+
+function listenToChallenges(){
+  if(!fbDb||!myPlayerId)return;
+  try{
+    if(challengeInboxRef)challengeInboxRef.off();
+    challengeInboxRef=fbDb.ref("challenges/"+myPlayerId);
+    challengeInboxRef.on("child_added",function(snapshot){
+      handleIncomingChallenge(snapshot);
+    },function(err){console.error("Listen challenges error:",err);});
+    challengeInboxRef.on("child_changed",function(snapshot){
+      handleIncomingChallenge(snapshot);
+    },function(err){console.error("Listen challenges error:",err);});
+  }catch(e){console.error("Listen challenges error:",e);}
+}
+
+function handleIncomingChallenge(snapshot){
+  try{
+    var challengeId=snapshot.key;
+    var data=snapshot.val();
+    if(!data)return;
+    if(data.status==="pending"){
+      challengeState.pendingInbound[challengeId]=true;
+      currentIncomingChallenge={id:challengeId,ref:snapshot.ref,data:data};
+      updateMyStatus("challenged");
+      showChallengeNotif(data.from||"Warrior");
+      return;
+    }
+    if(!challengeState.pendingInbound[challengeId])return;
+    if(data.status==="accepted"){
+      delete challengeState.pendingInbound[challengeId];
+      currentIncomingChallenge=null;
+      document.getElementById("chnotif").style.display="none";
+      setChallengeStatusText("Match accepted. Entering the arena.");
+      updateMyStatus("in-match");
+      setTimeout(function(){
+        prefillOnlineMatchNames(data.from||"WARRIOR");
+        setMode("pvp");
+      },350);
+      return;
+    }
+    if(data.status==="declined"||data.status==="cancelled"){
+      delete challengeState.pendingInbound[challengeId];
+      document.getElementById("chnotif").style.display="none";
+      currentIncomingChallenge=null;
+      updateMyStatus("online");
+      setChallengeStatusText((data.from||"Warrior")+" cancelled the challenge.");
+    }
+  }catch(e){console.error("Handle challenge error:",e);}
+}
+
+function setChallengeStatusText(text){
+  var statusEl=document.getElementById("disc-status");
+  if(statusEl)statusEl.textContent=text||"";
+}
+
+function prefillOnlineMatchNames(opponentName){
+  var p1=document.getElementById("p1ni"),p2=document.getElementById("p2ni");
+  if(p1&&G.discordUser)p1.value=G.discordUser.substring(0,12);
+  if(p2&&opponentName)p2.value=String(opponentName).substring(0,12);
+  G.p1n=p1&&p1.value?p1.value:G.p1n;
+  G.p2n=p2&&p2.value?p2.value:G.p2n;
+}
+
 // ===================== DISCORD OAUTH2 (REAL IMPLICIT GRANT) =====================
 var DISCORD_CLIENT_ID = "1513108516792045638";
 var DISCORD_REDIRECT_URI = window.location.href.split("#")[0].split("?")[0];
@@ -945,6 +1218,16 @@ function fetchDiscordUser(token) {
 function onDiscordLoginSuccess(user) {
   G.discordConnected = true;
   G.discordUser = user.username + (user.discriminator && user.discriminator !== "0" ? "#" + user.discriminator : "");
+  G.discordId = user.id;
+  
+  // Initialize Firebase for multiplayer
+  if(!fbInitialized)initFirebase();
+  
+  // Add this player to online list
+  setTimeout(function(){
+    if(fbDb)addPlayerToOnline(G.discordUser,G.discordId,"online");
+  },500);
+  
   // Show connected state
   document.getElementById("disc-login").style.display = "none";
   document.getElementById("disc-online").style.display = "block";
@@ -966,9 +1249,8 @@ function onDiscordLoginSuccess(user) {
     infoEl.appendChild(tag);
   }
   buildOnlineList();
+  setChallengeStatusText("Connected to Online Arena.");
   sSpc();
-  // Simulate other players coming online (real multiplayer would use a WebSocket server)
-  simulateOnlinePlayers();
 }
 
 // ---- Simulate online presence (real multiplayer needs a backend/WebSocket) ----
@@ -998,10 +1280,12 @@ function simulateOnlinePlayers() {
 
 // ---- Log out ----
 function discordLogout() {
+  cleanupOnlinePresence();
   discordState.accessToken = null;
   discordState.user = null;
   G.discordConnected = false;
   G.discordUser = "";
+  G.discordId = "";
   document.getElementById("disc-login").style.display = "block";
   document.getElementById("disc-online").style.display = "none";
   var btn = document.getElementById("disc-connect-btn");
@@ -1013,8 +1297,51 @@ function discordLogout() {
 
 function sendChallenge(name,btn){sSpc();btn.textContent="SENT...";btn.disabled=true;btn.style.borderColor="var(--am)";btn.style.color="var(--am)";setTimeout(function(){btn.textContent="ACCEPTED";btn.style.borderColor="var(--ph)";btn.style.color="var(--ph)";sSup();setTimeout(function(){setMode("pvp");},900);},1500);}
 function showChallengeNotif(from){var n=document.getElementById("chnotif");if(!n)return;document.getElementById("chfrom").textContent=from+" wants to fight you!";n.style.display="block";sSpc();}
-function acceptChallenge(){document.getElementById("chnotif").style.display="none";sSup();setTimeout(function(){setMode("pvp");},300);}
-function declineChallenge(){document.getElementById("chnotif").style.display="none";sMn();}
+function acceptChallenge(){
+  if(!currentIncomingChallenge||!currentIncomingChallenge.ref)return;
+  document.getElementById("chnotif").style.display="none";
+  sSup();
+  currentIncomingChallenge.ref.update({status:"accepted",acceptedAt:firebase.database.ServerValue.TIMESTAMP},function(err){
+    if(err){
+      console.error("Accept challenge error:",err);
+      updateMyStatus("online");
+      return;
+    }
+    setChallengeStatusText("Challenge accepted. Entering the arena.");
+  });
+}
+function declineChallenge(){
+  document.getElementById("chnotif").style.display="none";
+  sMn();
+  if(currentIncomingChallenge&&currentIncomingChallenge.ref){
+    currentIncomingChallenge.ref.update({status:"declined",declinedAt:firebase.database.ServerValue.TIMESTAMP});
+  }
+  if(currentIncomingChallenge&&currentIncomingChallenge.id)delete challengeState.pendingInbound[currentIncomingChallenge.id];
+  currentIncomingChallenge=null;
+  updateMyStatus("online");
+  setChallengeStatusText("Challenge declined.");
+}
+
+// ===================== BUILD ONLINE PLAYERS LIST =====================
+function buildOnlineList(){
+  var list=document.getElementById("oplst");if(!list)return;list.innerHTML="";
+  if(mpls.length===0){
+    list.innerHTML="<div style='text-align:center;padding:20px;font-size:10px;color:var(--phd);'>No warriors online yet</div>";
+    return;
+  }
+  mpls.forEach(function(p,i){
+    var pe=document.createElement("div");pe.className="pe";
+    var pel=document.createElement("div");pel.className="pe-l";
+    var sdot=document.createElement("div");sdot.className="sdot "+(p.status==="online"?"on":"ch");
+    var pnm=document.createElement("span");pnm.className="pe-nm";pnm.textContent=p.name;
+    var prk=document.createElement("span");prk.className="pe-rk";prk.textContent=p.rank+" | "+String(p.status||"online").toUpperCase();
+    pel.appendChild(sdot);pel.appendChild(pnm);pel.appendChild(prk);
+    var chbtn=document.createElement("button");chbtn.className="ch-btn";chbtn.textContent="CHALLENGE";
+    if(p.status!=="online"||challengeState.pendingOutbound[p.id]){chbtn.disabled=true;if(challengeState.pendingOutbound[p.id])chbtn.textContent="PENDING...";}
+    (function(pid,pn,b){chbtn.addEventListener("click",function(){sendChallengeToPeer(pid,pn,b);});})(p.id,p.name,chbtn);
+    pe.appendChild(pel);pe.appendChild(chbtn);list.appendChild(pe);
+  });
+}
 
 // ===================== CURSOR =====================
 document.addEventListener("mousemove",function(e){if(isMobile)return;var c=document.getElementById("cursor");if(c){c.style.left=e.clientX+"px";c.style.top=e.clientY+"px";}});
@@ -1044,6 +1371,7 @@ document.addEventListener("gesturestart",function(e){e.preventDefault();},false)
 
 // Check if this page load is an OAuth2 callback (token in URL fragment)
 checkOAuthCallback();
+window.addEventListener("beforeunload",cleanupOnlinePresence);
 
 function showFAQ(){
   var ov=document.getElementById("faq-overlay"),md=document.getElementById("faq-modal");
